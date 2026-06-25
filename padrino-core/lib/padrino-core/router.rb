@@ -58,8 +58,13 @@ module Padrino
       raise ArgumentError, "app is required" if app.nil?
 
       path  = path.chomp('/')
-      match = Regexp.new("^#{Regexp.quote(path).gsub('/', '/+')}(.*)", nil, 'n')
-      host  = Regexp.new("^#{Regexp.quote(host)}$", true, 'n') unless host.nil? || host.is_a?(Regexp)
+      # Ruby 3.2+ removed the 3-arg Regexp.new(str, options, kcode) form. Replace the
+      # trailing 'n' (ASCII-8BIT/none encoding) kcode with the Regexp::NOENCODING flag.
+      # Preserve the original options: the path regexp had no flags (nil); the host
+      # regexp passed `true`, which historically enabled case-insensitive matching, so
+      # keep IGNORECASE there.
+      match = Regexp.new("^#{Regexp.quote(path).gsub('/', '/+')}(.*)", Regexp::NOENCODING)
+      host  = Regexp.new("^#{Regexp.quote(host)}$", Regexp::IGNORECASE | Regexp::NOENCODING) unless host.nil? || host.is_a?(Regexp)
 
       @mapping << [host, path, match, app]
     end
